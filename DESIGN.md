@@ -54,3 +54,6 @@ Native gradient canvas, translucent white card fill and quiet shadows. Avoid vis
 
 ## Do's and Don'ts
 Prioritize one useful metric per card. Label icons. Preserve whitespace. Keep sample data explicit. Never imply a real message was delivered or that local role switching provides security.
+
+## App identity
+Single S monogram, deep green #173D32 and warm cream #F6F5EF. Launcher and favicon contain only the monogram. Splash uses a centered mark without tagline or forced delay. Role colors stay within the app.

@@ -25,3 +25,10 @@ It uses the generated Android test signing key. Use a private production signing
 School records, approvals, messages and role switching remain a local frontend simulation. No school backend or real message delivery is included.
 
 Download QR links hosted from a computer work only while its download server is running and the phone can reach that computer on the same network. They are not permanent public links.
+
+## Permanent public APK address
+
+Keep this release tag and asset filename unchanged when publishing updates:
+https://github.com/ASSA2004/The-School-Downloads/releases/download/android-2026-11-19/SCHOOL-android-arm64.apk
+
+Replace that release asset with each verified APK. Existing printed and saved QR codes point directly to this address. Increase Android versionCode for every update and retain the signing key so Android can upgrade the installed app. Source repository stays private.

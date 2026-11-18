@@ -2,7 +2,7 @@
   "expo": {
     "name": "SCHOOL",
     "slug": "school-native",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "default",
     "userInterfaceStyle": "light",
     "backgroundColor": "#E6F4DC",
@@ -12,15 +12,23 @@
     },
     "android": {
       "package": "com.school.preview",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "versionCode": 2
     },
     "web": {
       "bundler": "metro",
-      "name": "SCHOOL"
+      "name": "SCHOOL",
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font",
       "expo-status-bar"
-    ]
+    ],
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F6F5EF"
+    }
   }
 }

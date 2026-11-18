@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Image, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,7 +18,7 @@ function Shell() { const t = useTheme(); const styles = useShellStyles();
   useEffect(() => { const sub = BackHandler.addEventListener('hardwareBackPress', () => { if (app.route.name === 'Home') return false; app.back(); return true; }); return () => sub.remove(); }, [app.route]);
   const nav: Page[] = app.role === 'Principal' || app.role === 'Coordinator' ? ['Home','Events','Class','Schedule','Operations'] : ['Home','Events','Class','Schedule','Profile'];
   const selected = nav.includes(app.route.name) ? app.route.name : ['Attendance','Marks','Homework'].includes(app.route.name) ? 'Class' : app.route.name === 'Approvals' ? 'Operations' : 'Home';
-  if (!app.ready || (!fontsLoaded && !fontError)) return <View style={{ flex: 1, backgroundColor: t.pale, justifyContent: 'center' }}><ActivityIndicator color={t.greenText} accessibilityLabel="Opening SCHOOL" /></View>;
+  if (!app.ready || (!fontsLoaded && !fontError)) return <View style={{flex:1,backgroundColor:'#F6F5EF',justifyContent:'center',alignItems:'center'}}><Image source={require('./assets/splash.png')} style={{width:120,height:120}} accessibilityLabel="SCHOOL" /></View>;
   const navigation = <View style={[styles.nav, tablet && styles.rail]}>{nav.map(name => <Pressable accessibilityRole="tab" accessibilityLabel={name} accessibilityState={{ selected: selected === name }} key={name} onPress={() => app.go(name)} style={({ pressed }) => [styles.navItem, tablet && { justifyContent: 'flex-start', paddingHorizontal: 18 }, selected === name && { backgroundColor: t.white }, pressed && { opacity: .75 }]}><Icon name={navIcons[name]!} color={selected === name ? t.ink : t.tint} size={21} />{(selected === name || tablet) && <Copy bold size={11} style={{ color: selected === name ? t.ink : t.tint }}>{name}</Copy>}</Pressable>)}</View>;
   return <LinearGradient colors={[t.canvas,t.pale,t.white]} locations={[0,.45,1]} style={{ flex: 1 }}><StatusBar style="dark" /><KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, paddingTop: insets.top }}><View style={{ flex: 1, flexDirection: 'row', maxWidth: 1280, width: '100%', alignSelf: 'center' }}>
     {tablet && <View style={{ width: 205, padding: 22, gap: 35 }}><View style={{ gap: 8, paddingVertical: 20 }}><Icon name="school-outline" size={28} color={t.greenText} /><Copy size={22} bold>SCHOOL</Copy><Copy size={11} muted>One connected school.</Copy></View>{navigation}<Copy size={10} muted>Sample school · UI preview</Copy></View>}
