@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist/
+*.tsbuildinfo
+.env*
+.native/
+.native-expo/
+releases/
+apk-build.log
+download-server*.log
