@@ -18,6 +18,7 @@ export type ExamSlot = { exam: string; classId: string; subject: string; date: s
 export type Homework = { id: string; title: string; description: string; classId: string; subject: string; due: string; status: 'Draft' | 'Published'; done: string[]; by: string };
 export type Note = { key: string; title: string; status: 'Draft' | 'Published'; classId: string; subject: string; teacherId?: string; revision?: boolean };
 export type State = {
+  remarks?: {id:string;studentId:string;text:string;by:Role;createdAt:number;kind:'Remark'|'Suggestion'}[];
   archivedStudents?: Student[]; classRooms?: Record<string,string>; requests: Request[]; attendance: Record<string, Record<string, AttendanceValue>>;
   attendanceDrafts?: Record<string, Record<string, AttendanceValue>>;
   events?: SchoolEvent[]; timetable?: Period[]; examTimetable?: ExamSlot[]; subjectNames?: string[]; simulationVersion?: number;
@@ -84,11 +85,22 @@ export function settleDue(state: State, now = Date.now()): State {
 }
 
 export const ATTENDANCE_GRACE_MS = 10 * 60 * 1000;
-export function canMarkAttendance(role: Role, classId: string, state?: State) { return ['Teacher','In-charge Teacher','Coordinator'].includes(role) && (classId === '10-A' || !!state?.timetable?.some(p=>p.classId===classId&&p.teacherId===(role==='Coordinator'?'t2':'t1'))); }
+export function assignedClasses(state: State, role: Role) {
+ if(role==='Principal')return [...new Set([...classes,...Object.keys(state.classRooms??{})])];
+ const actor=role==='Coordinator'?'t2':'t1';
+ return [...new Set((state.timetable??[]).filter(p=>p.teacherId===actor).map(p=>p.classId).concat(role==='In-charge Teacher'?['10-A']:[]))];
+}
+export function canMarkAttendance(role: Role, classId: string, state?: State, session='Morning', date=schoolDate()) {
+ if(role==='Principal')return true;
+ if(!['Teacher','In-charge Teacher','Coordinator'].includes(role))return false;
+ if(!state?.timetable?.length)return classId==='10-A';
+ const period=session==='Morning'?1:6;
+ return scheduleFor(state,classId,date).some(p=>p.period===period&&p.teacherId===(role==='Coordinator'?'t2':'t1'));
+}
 export function saveAttendance(state: State, key: string, values: Record<string, AttendanceValue>, role: Role, now = Date.now()): State {
   const settled = settleDue(state, now);
   const [date, classId, session] = key.split('|');
-  if (!date || !['Morning','Evening'].includes(session) || !canMarkAttendance(role, classId, settled) || settled.attendance[key]) return settled;
+  if (!date || !['Morning','Evening'].includes(session) || !canMarkAttendance(role, classId, settled, session, date) || settled.attendance[key]) return settled;
   const roster = settled.students.filter(s => s.classId === classId);
   if (!roster.length || roster.some(s => !['P','A','L'].includes(values[s.id])) || Object.keys(values).length !== roster.length) return settled;
   const pending = settled.requests.find(r => r.kind === 'Attendance' && r.key === key && r.status === 'Pending');

@@ -116,3 +116,13 @@ test('past examination dates can be added and edited through approval without du
  const add={...request,id:'new-exam',key:'exam|10-A|Quarterly|English',examSlots:[{...slot,subject:'English'}]};
  assert.equal(decide(submitRequest(approved,add),add.id,'Approved','Principal').examTimetable.length,2);
 });
+
+ test('attendance responsibility follows session start and Principal can fill gaps', async () => {
+ const {canMarkAttendance}=await import('../src/domain.ts');
+ const state={timetable:[{classId:'10-A',period:1,teacherId:'t1',subject:'Math'},{classId:'10-A',period:6,teacherId:'t2',subject:'English'}]};
+ assert.equal(canMarkAttendance('Principal','10-A',state,'Evening'),true);
+ assert.equal(canMarkAttendance('Teacher','10-A',state,'Morning'),true);
+ assert.equal(canMarkAttendance('Teacher','10-A',state,'Evening'),false);
+ assert.equal(canMarkAttendance('Coordinator','10-A',state,'Evening'),true);
+ assert.equal(canMarkAttendance('Parent','10-A',state,'Morning'),false);
+ });

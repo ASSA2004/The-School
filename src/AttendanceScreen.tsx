@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, PanResponder, Pressable, ScrollView, View } from 'react-native';
-import { attendanceKey, AttendanceValue, canMarkAttendance, children, classes, requestAttendanceRevocation, saveAttendance, schoolDate, visibleStudents } from './domain';
+import { assignedClasses, attendanceKey, AttendanceValue, canMarkAttendance, children, classes, requestAttendanceRevocation, saveAttendance, schoolDate, visibleStudents } from './domain';
 import { useSchool } from './store';
 import { Avatar, Badge, Button, Card, Chips, Copy, Empty, Field, IconButton, Stat, Title, useUiStyles } from './ui';
 import { useTheme } from './theme';
@@ -9,7 +9,7 @@ const labels: Record<AttendanceValue, string> = { P: 'Present', L: 'Late', A: 'L
 const remaining = (deadline: number, now: number) => { const sec = Math.max(0, Math.ceil((deadline - now) / 1000)); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
 export default function AttendanceScreen() {
   const a = useSchool(); const [tab, setTab] = useState('Today');
-  return <>{a.role === 'Parent' ? <Chips items={children} value={a.child} onChange={a.setChild} /> : a.role === 'Principal' ? <Chips items={classes} value={a.classId} onChange={a.setClassId} /> : <Copy muted>Class {a.classId} · Your assigned class</Copy>}<Chips items={['Today','Overall']} value={tab} onChange={setTab} />{tab === 'Today' ? <Session key={`${a.classId}-${a.role}-${a.child}`} date={schoolDate()} /> : <Calendar key={`${a.classId}-${a.role}-${a.child}`} />}</>;
+  return <>{a.role === 'Parent' ? <Chips items={children} value={a.child} onChange={a.setChild} /> : true ? <Chips items={assignedClasses(a.state,a.role)} value={a.classId} onChange={a.setClassId} /> : <Copy muted>Class {a.classId} · Your assigned class</Copy>}<Chips items={['Today','Overall']} value={tab} onChange={setTab} />{tab === 'Today' ? <Session key={`${a.classId}-${a.role}-${a.child}`} date={schoolDate()} /> : <Calendar key={`${a.classId}-${a.role}-${a.child}`} />}</>;
 }
 function Session({ date }: { date: string }) {
   const a = useSchool(); const t = useTheme(); const s = useUiStyles();
@@ -24,7 +24,7 @@ function Session({ date }: { date: string }) {
   const finalized = a.state.attendance[key];
   const revoke = a.state.requests.find(r => r.kind === 'Attendance revocation' && r.key === key && r.status === 'Pending');
   const reopened = a.state.requests.some(r => r.kind === 'Attendance revocation' && r.key === key && r.status === 'Approved');
-  const canEdit = canMarkAttendance(a.role, a.classId, a.state) && !finalized && (!pending || (pending.deadline ?? 0) > a.now) && (date === schoolDate() || reopened);
+  const canEdit = canMarkAttendance(a.role, a.classId, a.state, session, date) && !finalized && (!pending || (pending.deadline ?? 0) > a.now) && (date === schoolDate() || reopened);
   const values = finalized ?? pending?.attendance ?? a.state.attendanceDrafts?.[key] ?? {};
   const marked = students.filter(st => values[st.id]).length; const student = students[index];
   const advance = (direction: number) => {
@@ -47,9 +47,11 @@ function Session({ date }: { date: string }) {
     advance(1);
   };
   const count = (v: AttendanceValue) => students.filter(st => values[st.id] === v).length;
-  return <><Copy muted size={11}>{date} · Two sessions per school day</Copy><Chips items={['Morning','Evening']} value={session} onChange={setSession} />
+  return <><Copy muted size={11}>{date} · Two sessions per school day</Copy><Chips items={['Morning','Afternoon']} value={session==='Evening'?'Afternoon':session} onChange={v=>setSession(v==='Afternoon'?'Evening':v)} />
+    <View style={s.between}><Badge label={finalized?'Complete':pending?'Edit timer running':'Not taken'} />{canEdit&&students.length>0&&<Button secondary label="All present" onPress={()=>{const all=Object.fromEntries(students.map(st=>[st.id,'P' as AttendanceValue]));a.update(state=>state.requests.some(r=>r.key===key&&r.status==='Pending')?saveAttendance(state,key,all,a.role):{...state,attendanceDrafts:{...state.attendanceDrafts,[key]:all}});}}/>}</View>
+    {!canEdit&&a.role!=='Parent'&&<Copy muted>View only � Attendance is taken by the teacher assigned to period {session==='Morning'?1:6}, or the Principal.</Copy>}
     {pending && <Card><View style={s.between}><Badge label="Editable" /><Copy bold size={27}>{remaining(pending.deadline!, a.now)}</Copy></View><Copy muted>Ten-minute edit window. Changing a status restarts the countdown. The session locks automatically when it ends.</Copy></Card>}
-    {finalized && <Card><Badge label="Locked" /><Copy muted>This {session.toLowerCase()} session is finalized. No staff member can submit it again without an approved revocation.</Copy></Card>}
+    {finalized && <Card><Badge label="Complete" /><Copy muted>This {session.toLowerCase()} session is finalized. No staff member can submit it again without an approved revocation.</Copy></Card>}
     {!students.length ? <Empty title="No students in this class" detail="Register students before taking attendance." /> : !canEdit && !pending && !finalized ? <Empty title="No attendance recorded yet" detail="The assigned teacher's submission will appear here." /> : <>
     <View style={{ overflow: 'hidden', paddingVertical: 4 }}><Animated.View {...pan.panHandlers} style={{ transform: [{ translateX: translate }] }}><Card><View style={s.between}><Copy muted size={11}>STUDENT {index + 1} OF {students.length}</Copy><Badge label={values[student.id] ? labels[values[student.id]] : 'Not marked'} /></View><View style={{ alignItems: 'center', gap: 12, paddingVertical: 20 }}><Avatar name={student.name} /><Copy bold size={28}>{student.name}</Copy><Copy muted>Roll {student.roll} · Class {student.classId}</Copy></View>{canEdit && <View style={{ flexDirection: 'row', gap: 8 }}>{(['P','L','A'] as AttendanceValue[]).map(value => <Pressable accessibilityRole="button" accessibilityLabel={`${student.name}: ${labels[value]}`} accessibilityState={{ selected: values[student.id] === value, disabled: moving }} disabled={moving} key={value} onPress={() => mark(value)} style={({ pressed }) => ({ flex: 1, minHeight: 56, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: values[student.id] === value ? t.ink : value === 'P' ? t.mint : value === 'L' ? t.butter : t.peach, opacity: pressed || moving ? .6 : 1 })}><Copy bold style={{ color: values[student.id] === value ? t.white : t.ink }}>{labels[value]}</Copy></Pressable>)}</View>}<View style={s.between}><Button label="Back" secondary disabled={index === 0 || moving} onPress={() => advance(-1)} /><Copy size={10} muted>Swipe to browse</Copy><Button label="Next" secondary disabled={index === students.length - 1 || moving} onPress={() => advance(1)} /></View></Card></Animated.View></View>
     <Card><Title>Live summary · {marked}/{students.length}</Title><View style={s.horizontal}><Stat label="Present" value={count('P')} color={t.mint} /><Stat label="Late" value={count('L')} color={t.butter} /><Stat label="Leave" value={count('A')} color={t.peach} /></View><ScrollView horizontal contentContainerStyle={{ gap: 8 }}>{students.filter(st => values[st.id]).map(st => <Pressable key={st.id} accessibilityRole="button" accessibilityLabel={`Review ${st.name}, ${labels[values[st.id]]}`} onPress={() => { if (!moving) setIndex(students.findIndex(x => x.id === st.id)); }} style={{ minWidth: 105, padding: 12, gap: 5, borderRadius: 16, backgroundColor: t.pale }}><Copy bold size={12}>{st.name}</Copy><Copy muted size={11}>Roll {st.roll} · {labels[values[st.id]]}</Copy></Pressable>)}</ScrollView><Copy muted size={11}>Late counts as present in daily history. Tap a summary card to review that student.</Copy></Card>
