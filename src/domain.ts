@@ -90,17 +90,23 @@ export function assignedClasses(state: State, role: Role) {
  const actor=role==='Coordinator'?'t2':'t1';
  return [...new Set((state.timetable??[]).filter(p=>p.teacherId===actor).map(p=>p.classId).concat(role==='In-charge Teacher'?['10-A']:[]))];
 }
-export function canMarkAttendance(role: Role, classId: string, state?: State, session='Morning', date=schoolDate()) {
+export function canMarkAttendance(role: Role, classId: string, state?: State, session='Morning', date=schoolDate(), now=Date.now()) {
+ const key=attendanceKey(classId,session,date);
+ if(state?.attendance?.[key])return false;
+ const pending=state?.requests?.find(r=>r.kind==='Attendance'&&r.key===key&&r.status==='Pending');
+ if(pending)return pending.by===role && (pending.deadline??0)>now;
  if(role==='Principal')return true;
  if(!['Teacher','In-charge Teacher','Coordinator'].includes(role))return false;
  if(!state?.timetable?.length)return classId==='10-A';
- const period=session==='Morning'?1:6;
- return scheduleFor(state,classId,date).some(p=>p.period===period&&p.teacherId===(role==='Coordinator'?'t2':'t1'));
+ const starts=[540,580,620,675,715,795,835,875];
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(now)).split(':');
+ const minutes=Number(parts[0])*60+Number(parts[1]);
+ return scheduleFor(state,classId,date).some(p=>(session==='Morning'?p.period<=5:p.period>=6)&&p.teacherId===(role==='Coordinator'?'t2':'t1')&&(date<schoolDate(new Date(now))||minutes>=starts[p.period-1]));
 }
 export function saveAttendance(state: State, key: string, values: Record<string, AttendanceValue>, role: Role, now = Date.now()): State {
   const settled = settleDue(state, now);
   const [date, classId, session] = key.split('|');
-  if (!date || !['Morning','Evening'].includes(session) || !canMarkAttendance(role, classId, settled, session, date) || settled.attendance[key]) return settled;
+  if (!date || !['Morning','Evening'].includes(session) || !canMarkAttendance(role, classId, settled, session, date, now) || settled.attendance[key]) return settled;
   const roster = settled.students.filter(s => s.classId === classId);
   if (!roster.length || roster.some(s => !['P','A','L'].includes(values[s.id])) || Object.keys(values).length !== roster.length) return settled;
   const pending = settled.requests.find(r => r.kind === 'Attendance' && r.key === key && r.status === 'Pending');

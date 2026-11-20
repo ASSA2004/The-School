@@ -120,9 +120,22 @@ test('past examination dates can be added and edited through approval without du
  test('attendance responsibility follows session start and Principal can fill gaps', async () => {
  const {canMarkAttendance}=await import('../src/domain.ts');
  const state={timetable:[{classId:'10-A',period:1,teacherId:'t1',subject:'Math'},{classId:'10-A',period:6,teacherId:'t2',subject:'English'}]};
- assert.equal(canMarkAttendance('Principal','10-A',state,'Evening'),true);
+ assert.equal(canMarkAttendance('Principal','10-A',state,'Evening','2026-11-20',Date.parse('2026-11-20T09:00:00+05:30')),true);
  assert.equal(canMarkAttendance('Teacher','10-A',state,'Morning'),true);
  assert.equal(canMarkAttendance('Teacher','10-A',state,'Evening'),false);
- assert.equal(canMarkAttendance('Coordinator','10-A',state,'Evening'),true);
+ assert.equal(canMarkAttendance('Coordinator','10-A',state,'Evening','2026-11-20',Date.parse('2026-11-20T14:00:00+05:30')),true);
  assert.equal(canMarkAttendance('Parent','10-A',state,'Morning'),false);
  });
+
+test('later teachers inherit untaken attendance but cannot overwrite a submitted session', async()=>{
+ const {canMarkAttendance}=await import('../src/domain.ts');
+ const date='2026-11-20',key=date+'|10-A|Morning';
+ const state={requests:[],attendance:{},timetable:[{classId:'10-A',period:2,teacherId:'t2',subject:'English'}]};
+ assert.equal(canMarkAttendance('Coordinator','10-A',state,'Morning',date,Date.parse(date+'T09:20:00+05:30')),false);
+ const now=Date.parse(date+'T09:45:00+05:30');
+ assert.equal(canMarkAttendance('Coordinator','10-A',state,'Morning',date,now),true);
+ state.requests=[{kind:'Attendance',key,status:'Pending',by:'Teacher',deadline:now+600000}];
+ assert.equal(canMarkAttendance('Coordinator','10-A',state,'Morning',date,now),false);
+ state.attendance[key]={s1:'P'};
+ assert.equal(canMarkAttendance('Principal','10-A',state,'Morning',date,now),false);
+});
