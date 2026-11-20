@@ -32,3 +32,7 @@ Keep this release tag and asset filename unchanged when publishing updates:
 https://github.com/ASSA2004/The-School-Downloads/releases/download/android-2026-11-19/SCHOOL-android-arm64.apk
 
 Replace that release asset with each verified APK. Existing printed and saved QR codes point directly to this address. Increase Android versionCode for every update and retain the signing key so Android can upgrade the installed app. Source repository stays private.
+
+## Version 1.0.2
+Attendance can be taken by a later scheduled teacher once their period starts if the session remains untaken. Morning covers periods 1–5; afternoon covers 6–8. Submission stops handoff; only the submitting role can edit during the ten-minute window. Finalized sessions cannot be submitted again. Includes All present, Principal fallback, assigned-class viewing, student suggestions and remarks, and local in-app notifications.
+Validation: TypeScript checks and 13 domain tests passed; mobile web previews captured from the running app.
