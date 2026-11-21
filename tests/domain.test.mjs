@@ -121,7 +121,7 @@ test('past examination dates can be added and edited through approval without du
  const {canMarkAttendance}=await import('../src/domain.ts');
  const state={timetable:[{classId:'10-A',period:1,teacherId:'t1',subject:'Math'},{classId:'10-A',period:6,teacherId:'t2',subject:'English'}]};
  assert.equal(canMarkAttendance('Principal','10-A',state,'Evening','2026-11-20',Date.parse('2026-11-20T09:00:00+05:30')),true);
- assert.equal(canMarkAttendance('Teacher','10-A',state,'Morning'),true);
+ assert.equal(canMarkAttendance('Teacher','10-A',state,'Morning','2026-11-20',Date.parse('2026-11-20T10:00:00+05:30')),true);
  assert.equal(canMarkAttendance('Teacher','10-A',state,'Evening'),false);
  assert.equal(canMarkAttendance('Coordinator','10-A',state,'Evening','2026-11-20',Date.parse('2026-11-20T14:00:00+05:30')),true);
  assert.equal(canMarkAttendance('Parent','10-A',state,'Morning'),false);
@@ -138,4 +138,15 @@ test('later teachers inherit untaken attendance but cannot overwrite a submitted
  assert.equal(canMarkAttendance('Coordinator','10-A',state,'Morning',date,now),false);
  state.attendance[key]={s1:'P'};
  assert.equal(canMarkAttendance('Principal','10-A',state,'Morning',date,now),false);
+});
+
+test('only Super Admin reviews and deletes archived students', async()=>{
+ const {canReview}=await import('../src/domain.ts');
+ const state=initialState();const student=state.students[0];
+ const r={id:'archive-test',kind:'Student archive',title:'Archive',by:'Principal',classId:student.classId,original:student.name,proposed:'Delete',archivedStudent:student,status:'Pending',submittedAt:0};
+ const pending={...state,students:state.students.filter(s=>s.id!==student.id),archivedStudents:[student],requests:[r]};
+ assert.equal(canReview('Principal',r),false);assert.equal(canReview('Super Admin',r),true);
+ assert.equal(decide(pending,r.id,'Approved','Principal'),pending);
+ assert.equal(decide(pending,r.id,'Approved','Super Admin').archivedStudents.length,0);
+ assert.ok(decide(pending,r.id,'Declined','Super Admin').students.some(s=>s.id===student.id));
 });

@@ -13,6 +13,7 @@ const base = {
 
 // Keep status colors consistent; only the role identity palette changes.
 const palettes = {
+  'Super Admin': {ink:'#39271F',muted:'#756157',green:'#9C7052',greenText:'#795136',tint:'#EEDFD1',pale:'#FAF5EF',canvas:'#E9D8C7'},
   Principal: { ink: '#10243B', muted: '#50647A', green: '#397BCB', greenText: '#245B99', tint: '#DFECFA', pale: '#F0F6FD', canvas: '#DCEBFA' },
   Coordinator: { ink: '#29183F', muted: '#685773', green: '#8A5CC7', greenText: '#684095', tint: '#EDE3F8', pale: '#F7F2FC', canvas: '#EADDF8' },
   'In-charge Teacher': { ink: '#382114', muted: '#755F4F', green: '#D67B26', greenText: '#995315', tint: '#FCE8D5', pale: '#FFF6ED', canvas: '#FAE4CE' },

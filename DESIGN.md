@@ -57,3 +57,6 @@ Prioritize one useful metric per card. Label icons. Preserve whitespace. Keep sa
 
 ## App identity
 Single S monogram, deep green #173D32 and warm cream #F6F5EF. Launcher and favicon contain only the monogram. Splash uses a centered mark without tagline or forced delay. Role colors stay within the app.
+
+## Super Admin workspace
+Warm brown identity (#39271F text, #EEDFD1 surfaces, #FAF5EF canvas). Overview prioritizes population, paused access and archive decisions. People, Access and Archive are separate work areas; daily timetables stay in school roles. A role opening screen uses a short fade/slide and respects reduced motion. People use consistent, contrasting initial avatars.

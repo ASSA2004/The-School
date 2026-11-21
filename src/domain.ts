@@ -1,4 +1,4 @@
-export const roles = ['Principal', 'Coordinator', 'In-charge Teacher', 'Teacher', 'Parent'] as const;
+export const roles = ['Super Admin', 'Principal', 'Coordinator', 'In-charge Teacher', 'Teacher', 'Parent'] as const;
 export type Role = typeof roles[number];
 export type AttendanceValue = 'P' | 'A' | 'L';
 export type RequestStatus = 'Pending' | 'Approved' | 'Declined' | 'Automatically Approved';
@@ -18,6 +18,10 @@ export type ExamSlot = { exam: string; classId: string; subject: string; date: s
 export type Homework = { id: string; title: string; description: string; classId: string; subject: string; due: string; status: 'Draft' | 'Published'; done: string[]; by: string };
 export type Note = { key: string; title: string; status: 'Draft' | 'Published'; classId: string; subject: string; teacherId?: string; revision?: boolean };
 export type State = {
+  staffAccess?: Record<string,Record<string,boolean>>;
+  roleAccess?: Partial<Record<Role, Record<string, boolean>>>;
+  suspendedStaff?: string[];
+  archivedStaff?: Staff[];
   remarks?: {id:string;studentId:string;text:string;by:Role;createdAt:number;kind:'Remark'|'Suggestion'}[];
   archivedStudents?: Student[]; classRooms?: Record<string,string>; requests: Request[]; attendance: Record<string, Record<string, AttendanceValue>>;
   attendanceDrafts?: Record<string, Record<string, AttendanceValue>>;
@@ -34,7 +38,7 @@ export const children = ['Kaviya', 'Rahul'];
 export function schoolDate(date = new Date()) { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date); }
 export function attendanceKey(classId: string, session: string, date = schoolDate()) { return `${date}|${classId}|${session}`; }
 export function marksKey(classId: string, exam: string, subject: string) { return `${classId}|${exam}|${subject}`; }
-export function canReview(role: Role, request: Request) { return request.kind !== 'Attendance' && (role === 'Principal' || (role === 'Coordinator' && request.classId === '10-A' && request.kind === 'Marks')); }
+export function canReview(role: Role, request: Request) { if(request.kind==='Student archive')return role==='Super Admin'; return request.kind !== 'Attendance' && (role === 'Principal' || (role === 'Coordinator' && request.classId === '10-A' && request.kind === 'Marks')); }
 export function canSeeTransport(role: Role, student: Student, child: string) { return role === 'Principal' || (role === 'In-charge Teacher' && student.classId === '10-A') || (role === 'Parent' && student.name === child && children.includes(child)); }
 export function visibleStudents(state: State, role: Role, classId: string, child: string) { return state.students.filter(s => s.classId === classId && (role !== 'Parent' || s.name === child)); }
 export function summarizeMarks(values: Record<string, string>, max: number) {
@@ -54,7 +58,7 @@ export function decide(state: State, id: string, status: Exclude<RequestStatus, 
   if (request.kind === 'Attendance' && (status !== 'Automatically Approved' || !request.deadline || now < request.deadline)) return state;
   if (request.kind === 'Attendance revocation' && (reviewer !== 'Principal' || status === 'Automatically Approved')) return state;
   if (request.classChange && reviewer !== 'Principal') return state;
-  if (request.archivedStudent && reviewer !== 'Principal') return state;
+  if (request.archivedStudent && reviewer !== 'Super Admin') return state;
   const approved = status !== 'Declined';
   if (approved && request.periodChange && teacherConflict(state, request.periodChange)) return state;
   const attendance = { ...state.attendance };
